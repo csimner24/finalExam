@@ -6,6 +6,7 @@ from datetime import datetime
 import sys
 import random
 import string
+import re
 
 class Task:
     """Representation of a task
@@ -77,7 +78,7 @@ class Task:
         if len(name_check) == 0:
             return None
         else:
-            return name.lower().strip()
+            return name.strip()
         
     def __validate_completed(self, completed):
         """This is a private method used to validate the completed attribute or set the default value to None. It returns either a formatted date or None."""
@@ -150,19 +151,13 @@ def main():
     parser.add_argument('--done', type= str, required= False, help= "the date completed in MM/DD/YYYY format")
     parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
-    parser.add_argument('--query', type=int, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
+    parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
     parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
 
 
     args = parser.parse_args()
 
     task_list = Tasks()
-    for task in task_list.tasks:
-        if task.completed is None:
-            current_date = datetime.now()
-            created_date = datetime.strptime(task.created, "%m/%d/%Y")
-            age = (current_date - created_date).days
-            task.age = age
     
     #for task in task_list.tasks:
     #    print(task)
@@ -175,8 +170,17 @@ def main():
         return
     
     elif args.list:
-        incomplete_tasks = [task for task in task_list.tasks if task.completed is None]
-
+        incomplete_tasks = []
+        for task in task_list.tasks:
+            if task.completed is None:
+                current_date = datetime.now()
+                created_date = datetime.strptime(task.created, "%m/%d/%Y")
+                age = (current_date - created_date).days
+                task.age = age
+                incomplete_tasks.append(task)
+        
+        
+        #incomplete_tasks = [task for task in task_list.tasks if task.completed is None] <--- delete this before submitting
         sorted_incomplete_tasks = sorted(incomplete_tasks, key=lambda task: (datetime.strptime(task.due_date, "%m/%d/%Y") if task.due_date else datetime.max, task.priority))
 
         print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
@@ -187,6 +191,44 @@ def main():
             due_date_str = task.due_date if task.due_date else "-"
             #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
+    
+    elif args.query:
+        task_word_sets = []
+
+        for task in task_list.tasks:  # Loop over all tasks (N tasks)
+            if task.completed is None:
+                task_words = set(task.name.lower().split())  # Preprocessing each task (O(L) per task)
+                task_word_sets.append((task, task_words))
+        
+        matching_tasks = []
+        query_terms = set(term.lower() for term in args.query)  # Preprocess query terms (O(M))
+
+        for task, task_words in task_word_sets:  # Loop over all tasks (N tasks)
+            if query_terms & task_words:  # Check for intersection (O(M) per task)
+                matching_tasks.append(task)
+        
+        print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
+        print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
+        
+        final_tasks = []
+        for task in matching_tasks:
+            current_date = datetime.now()
+            created_date = datetime.strptime(task.created, "%m/%d/%Y")
+            age = (current_date - created_date).days
+            task.age = age
+            final_tasks.append(task)
+        
+        for task in final_tasks:
+            age_str = f"{task.age}d" if task.age is not None else "0d"
+            due_date_str = task.due_date if task.due_date else "-"
+            #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
+            print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
+
+    elif args.done:
+        pass
+        
+        
+    
 
 
 
