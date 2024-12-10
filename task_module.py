@@ -2,6 +2,7 @@
 import argparse
 import pickle
 from datetime import datetime
+import sys
 
 class Task:
     """Representation of a task
@@ -17,11 +18,14 @@ class Task:
     """
     _new_id = 0
     def __init__(self, name, priority= 1, due_date= None, completed= None):
+        self.name = name
+        self.name = self.__validate_name(name)
+        if self.name is None:
+            print("The task name you provided was invalid, you must provide a non blank name.")
+            sys.exit(1)
         self.created = self.__create_date()
         self.raw_created = self.__raw_create_date()
         self.completed = self.__validate_completed(completed) #This sets the default to None since the user won't set it right away, it performs error handling if there is a input passed
-        self.name = name
-        self.name = self.__validate_name(name)
         self.unique_id = self.__create_unique_id()
         self.priority = self.__validate_priority(priority)
         self.due_date = self.__validate_due_date(due_date) #This sets the optional value of due date to None and performs error handling when a value is passed
@@ -57,7 +61,6 @@ class Task:
         """This is a private method used to validate the name attribute or set the default value to None. It returns either a string name or None."""
         name_check = name.replace(" ", "").strip()
         if len(name_check) == 0:
-            print("You cannot enter a blank name, the name value will therefore be set to None.")
             return None
         else:
             return name.strip()
@@ -98,10 +101,9 @@ class Task:
 
 
 if __name__ == "__main__":
-    task1 = Task("Task 1")
+    task1 = Task("1 ")
     print(f"Task Name: {task1.name}, Created: {task1.created}, Unique ID: {task1.unique_id}, Priority: {task1.priority}, Completed: {task1.completed}, Due Date: {task1.due_date}")
 
-    current = datetime.now()
-
-    print(current)
-    print(type(current))
+    #current = datetime.now()
+    #print(current)
+    #print(type(current))
