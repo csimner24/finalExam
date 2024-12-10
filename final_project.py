@@ -147,9 +147,10 @@ class Tasks:
 def main():
     """ All the real work driving the program!"""
     parser = argparse.ArgumentParser(description= "update the task list.")
-    parser.add_argument('--add', type= str, required= False, help= "add a task to your list by passing in an alphanumeric name")
-    parser.add_argument('--done', type= str, required= False, help= "the date completed in MM/DD/YYYY format")
-    parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format")
+    parser.add_argument('--add', type= str, required= False, help= "add a task to your list by passing in an alphanumeric name.")
+    parser.add_argument('--done', type= str, required= False, help= "the unique ID of the task you want to mark 'complete.")
+    parser.add_argument('--delete', type= str, required= False, help= "the unique ID of teh task you want to remove from the list.")
+    parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format.")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
     parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
     parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
@@ -239,6 +240,16 @@ def main():
                 formatted_date = current_date.strftime("%m/%d/%Y")
                 task.completed = formatted_date
                 print(f"Completed task {task.unique_id}")
+                task_list.pickle_tasks()
+                return
+        else:
+            print("The unique ID specified could not be found.")
+    
+    elif args.delete:
+        for task in task_list.tasks:
+            if task.unique_id == args.delete:
+                print(f"Deleted task {task.unique_id}")
+                task_list.tasks.remove(task)
                 task_list.pickle_tasks()
                 return
         else:
