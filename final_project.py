@@ -192,20 +192,25 @@ def main():
             #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
     
-    elif args.query:
+    elif args.query: #I made a runtime tradeoff here with the justification of better search performance for worse runtime O(N^3) vs O(N)
         task_word_sets = []
 
+        # Preprocess task names
+         # Preprocess task names
         for task in task_list.tasks:  # Loop over all tasks (N tasks)
             if task.completed is None:
-                task_words = set(task.name.lower().split())  # Preprocessing each task (O(L) per task)
+            # Remove punctuation from task name and split by space
+                task_name_cleaned = re.sub(r"[^\w\s]", "", task.name.lower())  # Removes punctuation
+                task_words = set(task_name_cleaned.split())  # Split into words and make a set
                 task_word_sets.append((task, task_words))
-        
+    
         matching_tasks = []
         query_terms = set(term.lower() for term in args.query)  # Preprocess query terms (O(M))
 
+        # Check for matches (substring match)
         for task, task_words in task_word_sets:  # Loop over all tasks (N tasks)
-            if query_terms & task_words:  # Check for intersection (O(M) per task)
-                matching_tasks.append(task)
+            if any(any(term in word for term in query_terms) for word in task_words):  # Check for substring match
+               matching_tasks.append(task)
         
         print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
         print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
@@ -223,6 +228,9 @@ def main():
             due_date_str = task.due_date if task.due_date else "-"
             #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
+        
+        for task in task_list.tasks:
+            print(task)
 
     elif args.done:
         pass
