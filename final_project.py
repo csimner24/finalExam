@@ -11,7 +11,8 @@ class Task:
     """Representation of a task
   
     Attributes:
-              - created - date
+              - created - date, displayed as MM/DD/YYYY
+              - raw_created - datetime, the datetime stamp when a task was created
               - completed - date, this is optionally defined as MM/DD/YYYY
               - name - string
               - unique id - number, this is created automatically
@@ -51,9 +52,9 @@ class Task:
     
     def __create_unique_id(self):
         """This is a private method used to create the unique ID attribute for a Task. It generates 3 random numbers and 2 random letters and returns the concatenated string."""
-        #this generates 17 million possible combinations
-        random_digits = ''.join(random.choices(string.digits, k=3)) #generate three random numbers
-        random_letter = ''.join(random.choices(string.ascii_uppercase, k=3)) #generate 3 random letters
+        #this generates 73 billion possible combinations
+        random_digits = ''.join(random.choices(string.digits, k=4)) #generate three random numbers
+        random_letter = ''.join(random.choices(string.ascii_letters, k=4)) #generate 3 random letters
         unique_id = random_digits + random_letter
         return unique_id
     
@@ -78,7 +79,7 @@ class Task:
         else:
             return name.lower().strip()
         
-    def __validate_completed(self, completed=None):
+    def __validate_completed(self, completed):
         """This is a private method used to validate the completed attribute or set the default value to None. It returns either a formatted date or None."""
         if completed is None:
             return None
@@ -89,7 +90,7 @@ class Task:
                 print(f"You did not enter a correct date in MM/DD/YYYY format.") #When an error occurs, defaut the value back to None and display a message
                 return None 
             
-    def __validate_due_date(self, due_date=None):
+    def __validate_due_date(self, due_date):
         """This is a private method used to validate the completed attribute or set the default value to None. It returns either a formatted date or None."""
         if due_date is None:
             return None
@@ -150,24 +151,42 @@ def main():
     parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
     parser.add_argument('--query', type=int, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
-    parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed")
+    parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
 
 
     args = parser.parse_args()
 
     task_list = Tasks()
+    for task in task_list.tasks:
+        if task.completed is None:
+            current_date = datetime.now()
+            created_date = datetime.strptime(task.created, "%m/%d/%Y")
+            age = (current_date - created_date).days
+            task.age = age
+    
+    #for task in task_list.tasks:
+    #    print(task)
 
     if args.add:
         new_task = Task(name=args.add, priority=args.priority, due_date=args.due, completed=args.done)
         task_list.tasks.append(new_task)
         print(f"Created task {new_task.unique_id}")
         task_list.pickle_tasks()
+        return
+    
+    elif args.list:
+        incomplete_tasks = [task for task in task_list.tasks if task.completed is None]
 
-    #for task in task_list.tasks:
-    #    print(task)
-    
-    exit()
-    
+        sorted_incomplete_tasks = sorted(incomplete_tasks, key=lambda task: (datetime.strptime(task.due_date, "%m/%d/%Y") if task.due_date else datetime.max, task.priority))
+
+        print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
+        print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
+        
+        for task in sorted_incomplete_tasks:
+            age_str = f"{task.age}d" if task.age is not None else "0d"
+            due_date_str = task.due_date if task.due_date else "-"
+            #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
+            print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
 
 
 
