@@ -35,7 +35,7 @@ class Task:
 
     def __str__(self):
         """Return a string representation of the Task object."""
-        return f"Task ID: {self.unique_id}, Name: '{self.name}', Due: {self.due_date}, Priority: {self.priority}, Created: {self.created}"
+        return f"Task ID: {self.unique_id}, Name: '{self.name}', Due: {self.due_date}, Priority: {self.priority}, Created: {self.created}, Completed: {self.completed}"
     
     def __create_date(self):
         """This is a private method used to create the date value for the 'created' attribute. It returns a string."""
@@ -233,8 +233,16 @@ def main():
             print(task)
 
     elif args.done:
-        pass
-        
+        for task in task_list.tasks:
+            if task.unique_id == args.done:
+                current_date = datetime.now()
+                formatted_date = current_date.strftime("%m/%d/%Y")
+                task.completed = formatted_date
+                print(f"Completed task {task.unique_id}")
+                task_list.pickle_tasks()
+                return
+        else:
+            print("The unique ID specified could not be found.")
         
     
 
