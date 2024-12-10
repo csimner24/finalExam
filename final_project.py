@@ -49,7 +49,9 @@ class Task:
         """This is a private method used to create the raw date value for a special attribute uses to sort dates. It returns a string."""
         current = datetime.now()
 
-        return current
+        formatted_time = current.strftime('%a %b %d %H:%M:%S CST %Y')
+
+        return formatted_time
     
     def __create_unique_id(self):
         """This is a private method used to create the unique ID attribute for a Task. It generates 3 random numbers and 2 random letters and returns the concatenated string."""
@@ -142,18 +144,107 @@ class Tasks:
         except Exception as e:
             print(f"Error while saving tasks: {e}")
     
-    ### add, list, report, done, delete, etc. functionality ###
+    def add_tasks(self, name, priority, due_date= None):
+        """This method is used to create a task, it inherets functionality from the Task class and returns the  """
+        task = Task(name, priority, due_date)
+        return task
+    
+    def display_list(self):
+        """This method is used for the list operation. """
+        incomplete_tasks = []
+        for task in self.tasks:
+            if task.completed is None:
+                current_date = datetime.now()
+                created_date = datetime.strptime(task.created, "%m/%d/%Y")
+                age = (current_date - created_date).days
+                task.age = age
+                incomplete_tasks.append(task)
+        
+        sorted_incomplete_tasks = sorted(incomplete_tasks, 
+                                         key=lambda task: (datetime.strptime(task.due_date, "%m/%d/%Y") if task.due_date 
+                                                           else datetime.max, task.priority))
+        return sorted_incomplete_tasks
+    
+    def list_query(self, search):
+        """This is a docstring for the query method"""
+        task_word_sets = []
+
+        for task in self.tasks:  # Loop over all tasks (N tasks)
+            if task.completed is None:
+            # Remove punctuation from task name and split by space
+                task_name_cleaned = re.sub(r"[^\w\s]", "", task.name.lower())  # Removes punctuation
+                task_words = set(task_name_cleaned.split())  # Split into words and make a set
+                task_word_sets.append((task, task_words))
+    
+        matching_tasks = []
+        query_terms = set(term.lower() for term in search)  # Preprocess query terms (O(M))
+
+        # Check for matches (substring match)
+        for task, task_words in task_word_sets:  # Loop over all tasks (N tasks)
+            if any(any(term in word for term in query_terms) for word in task_words):  # Check for substring match
+               matching_tasks.append(task)
+        
+        final_tasks = []
+        for task in matching_tasks:
+            current_date = datetime.now()
+            created_date = datetime.strptime(task.created, "%m/%d/%Y")
+            age = (current_date - created_date).days
+            task.age = age
+            final_tasks.append(task)
+        
+        return final_tasks
+    
+    def list_done(self, task_id):
+        """This is a docstring for the done functionality that updates the 'completed' field of a task."""
+        for task in self.tasks:
+            if task.unique_id == task_id:
+                current_date = datetime.now()
+                formatted_date = current_date.strftime("%m/%d/%Y")
+                raw_time = current_date.strftime('%a %b %d %H:%M:%S CST %Y')
+                task.completed = formatted_date
+                task.raw_completed = raw_time
+                self.pickle_tasks()
+                return True
+        else:
+            return False
+    
+    def list_delete(self, task_id):
+        """This is a docstring for the delete functionality that deletes task."""
+        for task in self.tasks:
+            if task.unique_id == task_id:
+                self.tasks.remove(task)
+                self.pickle_tasks()
+                return True
+        else:
+            return False
+    
+    def list_report(self):
+        """This is a docstring for the Task report command"""
+        all_tasks = []
+        for task in self.tasks:
+                current_date = datetime.now()
+                created_date = datetime.strptime(task.created, "%m/%d/%Y")
+                age = (current_date - created_date).days
+                task.age = age
+                all_tasks.append(task)
+        
+        sorted_tasks = sorted(all_tasks, key=lambda task: task.priority)
+        
+        return sorted_tasks
+
 
 def main():
     """ All the real work driving the program!"""
     parser = argparse.ArgumentParser(description= "update the task list.")
     parser.add_argument('--add', type= str, required= False, help= "add a task to your list by passing in an alphanumeric name.")
-    parser.add_argument('--done', type= str, required= False, help= "the unique ID of the task you want to mark 'complete.")
-    parser.add_argument('--delete', type= str, required= False, help= "the unique ID of teh task you want to remove from the list.")
+    parser.add_argument('--done', type= str, required= False, help= "the unique ID of the task you want to mark 'complete.'")
+    parser.add_argument('--delete', type= str, required= False, help= "the unique ID of the task you want to remove from the list.")
     parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format.")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
     parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
     parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
+    parser.add_argument('--report', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
+
 
 
     args = parser.parse_args()
@@ -164,101 +255,70 @@ def main():
     #    print(task)
 
     if args.add:
-        new_task = Task(name=args.add, priority=args.priority, due_date=args.due, completed=args.done)
+        new_task = task_list.add_tasks(name=args.add, priority=args.priority, due_date=args.due)
         task_list.tasks.append(new_task)
         print(f"Created task {new_task.unique_id}")
         task_list.pickle_tasks()
         return
     
     elif args.list:
-        incomplete_tasks = []
-        for task in task_list.tasks:
-            if task.completed is None:
-                current_date = datetime.now()
-                created_date = datetime.strptime(task.created, "%m/%d/%Y")
-                age = (current_date - created_date).days
-                task.age = age
-                incomplete_tasks.append(task)
-        
-        
-        #incomplete_tasks = [task for task in task_list.tasks if task.completed is None] <--- delete this before submitting
-        sorted_incomplete_tasks = sorted(incomplete_tasks, key=lambda task: (datetime.strptime(task.due_date, "%m/%d/%Y") if task.due_date else datetime.max, task.priority))
-
+        sorted_incomplete_tasks = task_list.display_list()
         print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
         print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
         
         for task in sorted_incomplete_tasks:
             age_str = f"{task.age}d" if task.age is not None else "0d"
             due_date_str = task.due_date if task.due_date else "-"
-            #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
+        return
     
     elif args.query: #I made a runtime tradeoff here with the justification of better search performance for worse runtime O(N^3) vs O(N)
-        task_word_sets = []
-
-        # Preprocess task names
-         # Preprocess task names
-        for task in task_list.tasks:  # Loop over all tasks (N tasks)
-            if task.completed is None:
-            # Remove punctuation from task name and split by space
-                task_name_cleaned = re.sub(r"[^\w\s]", "", task.name.lower())  # Removes punctuation
-                task_words = set(task_name_cleaned.split())  # Split into words and make a set
-                task_word_sets.append((task, task_words))
-    
-        matching_tasks = []
-        query_terms = set(term.lower() for term in args.query)  # Preprocess query terms (O(M))
-
-        # Check for matches (substring match)
-        for task, task_words in task_word_sets:  # Loop over all tasks (N tasks)
-            if any(any(term in word for term in query_terms) for word in task_words):  # Check for substring match
-               matching_tasks.append(task)
+        final_tasks = task_list.list_query(args.query)
         
         print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
         print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
-        
-        final_tasks = []
-        for task in matching_tasks:
-            current_date = datetime.now()
-            created_date = datetime.strptime(task.created, "%m/%d/%Y")
-            age = (current_date - created_date).days
-            task.age = age
-            final_tasks.append(task)
         
         for task in final_tasks:
             age_str = f"{task.age}d" if task.age is not None else "0d"
             due_date_str = task.due_date if task.due_date else "-"
             #print(f"{task.unique_id}\t{age_str}\t{task.due_date}\t{task.priority}\t{task.name}")
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
-        
-        for task in task_list.tasks:
-            print(task)
+        return
 
     elif args.done:
-        for task in task_list.tasks:
-            if task.unique_id == args.done:
-                current_date = datetime.now()
-                formatted_date = current_date.strftime("%m/%d/%Y")
-                task.completed = formatted_date
-                print(f"Completed task {task.unique_id}")
-                task_list.pickle_tasks()
-                return
+        successfully_updated = task_list.list_done(args.done)
+        if successfully_updated == True:
+            print(f"Completed task {args.done}")
         else:
-            print("The unique ID specified could not be found.")
+            print(f"Task {args.done} could be found.")
+        return
     
     elif args.delete:
-        for task in task_list.tasks:
-            if task.unique_id == args.delete:
-                print(f"Deleted task {task.unique_id}")
-                task_list.tasks.remove(task)
-                task_list.pickle_tasks()
-                return
+        successfully_deleted = task_list.list_delete(args.delete)
+        if successfully_deleted == True:
+            print(f"Deleted task {args.delete}")
         else:
-            print("The unique ID specified could not be found.")
-        
+            print(f"Task {args.delete} could be found.")   
+        return
     
+    elif args.report:
+        all_tasks_debugging = task_list.list_report()
+        print(f"{'ID':<12} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<40} {'Created':<20} {'Completed':<20}")
+        print(f"{'-' * 9} {'-' * 3} {'-' * 10} {'-' * 8} {'-' * 35} {'-' * 30} {'-' * 30}")
+    
+        for task in all_tasks_debugging:
+            # Format age, due date, and completed date with fallback values
+            age_str = f"{task.age}d" if task.age is not None else "0d"
+            due_date_str = task.due_date if task.due_date else "-"
+            completed_str = task.raw_completed if hasattr(task, 'raw_completed') else "-"
+        
+            # Print task details with aligned columns
+            print(f"{task.unique_id:<12} {age_str:<5} {due_date_str:<12} {task.priority:<10} {task.name:<40} {task.raw_created:<20} {completed_str:<20}")
+        return
 
-
-
+    else:
+        print("You did not call a valid operation, try -h for a list of valid operations")
+        task_list.pickle_tasks() #create a pickle file containing an empty list of objects
 
 if __name__ == "__main__":
     main()
