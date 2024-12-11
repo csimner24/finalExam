@@ -30,8 +30,8 @@ class Task:
         self.raw_created = self.__raw_create_date()
         self.completed = self.__validate_completed(completed) #This sets the default to None since the user won't set it right away, it performs error handling if there is a input passed
         self.unique_id = self.__create_unique_id()
-        self.priority = self.__validate_priority(priority)
-        self.due_date = self.__validate_due_date(due_date) #This sets the optional value of due date to None and performs error handling when a value is passed
+        self.priority = self.validate_priority(priority)
+        self.due_date = self.validate_due_date(due_date) #This sets the optional value of due date to None and performs error handling when a value is passed
 
     def __str__(self):
         """Return a string representation of the Task object."""
@@ -93,7 +93,7 @@ class Task:
                 print(f"You did not enter a correct date in MM/DD/YYYY format.") #When an error occurs, defaut the value back to None and display a message
                 return None 
             
-    def __validate_due_date(self, due_date):
+    def validate_due_date(self, due_date):
         """This is a private method used to validate the completed attribute or set the default value to None. It returns either a formatted date or None."""
         if due_date is None:
             return None
@@ -104,7 +104,7 @@ class Task:
                 print("You did not enter a correct date in MM/DD/YYYY format.")
                 return None #When an error occurs, defaut the value back to None and display a message
     
-    def __validate_priority(self, priority):
+    def validate_priority(self, priority):
         """This is a private method used to validate the priority attribute or set the default value to 1. It returns the integers 1, 2, or 3."""
         if priority == 1:
             return 1
@@ -239,19 +239,23 @@ class Tasks:
         """This is a docstring"""
         for task in self.tasks:
             if task.unique_id == task_id:
-                task.due_date = due_date
-                self.pickle_tasks()
-                return True
+                valid_date = task.validate_due_date(due_date)
+                if valid_date is not None:
+                    task.due_date = due_date
+                    self.pickle_tasks()
+                    return True
         else:
             return False
         
-    def update_priority(self, task_id, priority):
+    def update_priority(self, task_id, new_priority):
         """This is a docstring"""
         for task in self.tasks:
             if task.unique_id == task_id:
-                task.priority = priority
-                self.pickle_tasks()
-                return True
+                check_priority = task.validate_priority(new_priority)
+                if check_priority == new_priority:
+                    task.priority = new_priority
+                    self.pickle_tasks()
+                    return True
         else:
             return False
 
@@ -349,16 +353,16 @@ def main():
             print(f"Successfully updated task ID {args.id} to the due date {args.due}.")
             return
         else:
-            print(f"Either the task ID {args.id} does not exist or {args.due} is invalid.")
+            print(f"Either the task ID {args.id} does not exist or {args.due} is invalid, so nothing was modified.")
             return
     
     elif args.priority:
-        modify_priority = task_list.update_priority(task_id=args.id, priority=args.priority)
+        modify_priority = task_list.update_priority(task_id=args.id, new_priority=args.priority)
         if modify_priority == True:
             print(f"Successfully updated task ID {args.id} to the priority {args.priority}")
             return
         else:
-            print(f"Either the task ID {args.id} does not exist or {args.priority} is invalid.")
+            print(f"Either the task ID {args.id} does not exist or {args.priority} is invalid, so nothing was modified.")
             return
 
     else:
