@@ -266,20 +266,20 @@ def main():
     
     elif args.list:
         sorted_incomplete_tasks = task_list.display_list()
-        print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
-        print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 25}")
+        print(f"{'ID':<10} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<25}")
+        print(f"{'-' * 8}   {'-' * 3}   {'-' * 10}   {'-' * 8}   {'-' * 4}")
         
         for task in sorted_incomplete_tasks:
             age_str = f"{task.age}d" if task.age is not None else "0d"
             due_date_str = task.due_date if task.due_date else "-"
-            print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
+            print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12}  {task.priority:<9} {task.name:<25}")
         return
     
     elif args.report:
         all_tasks_debugging = task_list.list_report()
-        print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
-        print(f"{'ID':<12} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<40} {'Created':<20} {'Completed':<20}")
-        print(f"{'-' * 9} {'-' * 3} {'-' * 10} {'-' * 8} {'-' * 35} {'-' * 30} {'-' * 30}")
+        
+        print(f"{'ID':<10} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<25}    {'Created':<30} {'Completed':<30}")
+        print(f"{'-' * 8}   {'-' * 3}   {'-' * 10}   {'-' * 8}   {'-' * 4}                         {'-' * 27}    {'-' * 27}")
     
         for task in all_tasks_debugging:
             # Format age, due date, and completed date with fallback values
@@ -288,7 +288,7 @@ def main():
             completed_str = task.raw_completed if hasattr(task, 'raw_completed') else "-"
         
             # Print task details with aligned columns
-            print(f"{task.unique_id:<12} {age_str:<5} {due_date_str:<12} {task.priority:<10} {task.name:<40} {task.raw_created:<20} {completed_str:<20}")
+            print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12}  {task.priority:<9} {task.name:<25}    {task.raw_created:<30} {completed_str:<30}")
         return
     
     elif args.done:
