@@ -24,7 +24,7 @@ class Task:
         self.name = name
         self.name = self.__validate_name(name)
         if self.name is None:
-            print("There was an error in creating your task. Run 'todo -h' for usage instructions")
+            print("There was an error with creating your task. Run 'todo -h' for usage instructions")
             sys.exit(1)
         self.created = self.__create_date()
         self.raw_created = self.__raw_create_date()
@@ -71,14 +71,14 @@ class Task:
         
     def __validate_name(self, name):
         """This is a private method used to validate the name attribute or set the default value to None. It returns either a string name or None."""
-        name_check = name.replace(" ", "").strip()
-        try:
-            float(name_check)
-            return None
-        except:
-            pass
+        name_check = name.strip()
         if len(name_check) == 0:
             return None
+        elif not re.search(r'[a-zA-Z]', name_check):
+            return None
+        elif len(name_check) > 25:
+            name_check = name_check[:25]
+            return name_check
         else:
             return name.strip()
         
@@ -144,7 +144,7 @@ class Tasks:
         except Exception as e:
             print(f"Error while saving tasks: {e}")
     
-    def add_tasks(self, name, priority, due_date= None):
+    def add_tasks(self, name, priority=1, due_date= None):
         """This method is used to create a task, it inherets functionality from the Task class and returns the  """
         task = Task(name, priority, due_date)
         return task
@@ -194,29 +194,47 @@ class Tasks:
         
         return final_tasks
     
-    def list_done(self, task_id):
+    def list_done(self, task_ids):
         """This is a docstring for the done functionality that updates the 'completed' field of a task."""
-        for task in self.tasks:
-            if task.unique_id == task_id:
-                current_date = datetime.now()
-                formatted_date = current_date.strftime("%m/%d/%Y")
-                raw_time = current_date.strftime('%a %b %d %H:%M:%S CST %Y')
-                task.completed = formatted_date
-                task.raw_completed = raw_time
-                self.pickle_tasks()
-                return True
+        task_ids_not_found = []
+        for task_id in task_ids: 
+            found = False
+            for task in self.tasks:
+                if task.unique_id == task_id:
+                    current_date = datetime.now()
+                    formatted_date = current_date.strftime("%m/%d/%Y")
+                    raw_time = current_date.strftime('%a %b %d %H:%M:%S CST %Y')
+                    task.completed = formatted_date
+                    task.raw_completed = raw_time
+                    self.pickle_tasks()
+                    found = True
+                    break
+            if found == False:
+                task_ids_not_found.append(task_id)
+        if task_ids_not_found:
+            print(f"task ID(s) not found: {', '.join(task_ids_not_found)}")
         else:
-            return False
+            return found
+                
     
-    def list_delete(self, task_id):
+    def list_delete(self, task_ids):
         """This is a docstring for the delete functionality that deletes task."""
-        for task in self.tasks:
-            if task.unique_id == task_id:
-                self.tasks.remove(task)
-                self.pickle_tasks()
-                return True
+        task_ids_not_found = []
+        for task_id in task_ids: 
+            found = False
+            for task in self.tasks:
+                if task.unique_id == task_id:
+                    self.tasks.remove(task)
+                    self.pickle_tasks()
+                    found = True
+                    break
+            if found == False:
+                task_ids_not_found.append(task_id)
+        if task_ids_not_found:
+            print(f"task ID(s) not found: {', '.join(task_ids_not_found)}")
         else:
-            return False
+            return found
+        
     
     def list_report(self):
         """This is a docstring for the Task report command"""
@@ -236,13 +254,13 @@ class Tasks:
 def main():
     """ All the real work driving the program!"""
     parser = argparse.ArgumentParser(description= "update the task list.")
-    parser.add_argument('--add', type= str, required= False, help= "add a task to your list by passing in an alphanumeric name.")
-    parser.add_argument('--done', type= str, required= False, help= "the unique ID of the task you want to mark 'complete.'")
-    parser.add_argument('--delete', type= str, required= False, help= "the unique ID of the task you want to remove from the list.")
+    parser.add_argument('--add', type= str, required= False, help= "add one task to your list by passing in an alphanumeric name.")
+    parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
+    parser.add_argument('--done', type= str, required= False, nargs="+", help= "the unique ID of the task you want to mark 'complete.'")
+    parser.add_argument('--delete', type= str, required= False, nargs="+", help= "the unique ID of the task you want to remove from the list.")
     parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format.")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
     parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
-    parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
     parser.add_argument('--report', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
 
 
@@ -288,17 +306,13 @@ def main():
     elif args.done:
         successfully_updated = task_list.list_done(args.done)
         if successfully_updated == True:
-            print(f"Completed task {args.done}")
-        else:
-            print(f"Task {args.done} could be found.")
+            print(f"Completed task(s) {args.done}")
         return
     
     elif args.delete:
         successfully_deleted = task_list.list_delete(args.delete)
         if successfully_deleted == True:
-            print(f"Deleted task {args.delete}")
-        else:
-            print(f"Task {args.delete} could be found.")   
+            print(f"Deleted task(s) {args.delete}")  
         return
     
     elif args.report:
@@ -318,7 +332,6 @@ def main():
 
     else:
         print("You did not call a valid operation, try -h for a list of valid operations")
-        task_list.pickle_tasks() #create a pickle file containing an empty list of objects
 
 if __name__ == "__main__":
     main()
