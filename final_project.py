@@ -194,46 +194,31 @@ class Tasks:
         
         return final_tasks
     
-    def list_done(self, task_ids):
+    def list_done(self, task_id):
         """This is a docstring for the done functionality that updates the 'completed' field of a task."""
-        task_ids_not_found = []
-        for task_id in task_ids: 
-            found = False
-            for task in self.tasks:
-                if task.unique_id == task_id:
-                    current_date = datetime.now()
-                    formatted_date = current_date.strftime("%m/%d/%Y")
-                    raw_time = current_date.strftime('%a %b %d %H:%M:%S CST %Y')
-                    task.completed = formatted_date
-                    task.raw_completed = raw_time
-                    self.pickle_tasks()
-                    found = True
-                    break
-            if found == False:
-                task_ids_not_found.append(task_id)
-        if task_ids_not_found:
-            print(f"task ID(s) not found: {', '.join(task_ids_not_found)}")
+        for task in self.tasks:
+            if task.unique_id == task_id:
+                current_date = datetime.now()
+                formatted_date = current_date.strftime("%m/%d/%Y")
+                raw_time = current_date.strftime('%a %b %d %H:%M:%S CST %Y')
+                task.completed = formatted_date
+                task.raw_completed = raw_time
+                self.pickle_tasks()
+                return True
         else:
-            return found
+            return False
+        
                 
     
-    def list_delete(self, task_ids):
+    def list_delete(self, task_id):
         """This is a docstring for the delete functionality that deletes task."""
-        task_ids_not_found = []
-        for task_id in task_ids: 
-            found = False
-            for task in self.tasks:
-                if task.unique_id == task_id:
-                    self.tasks.remove(task)
-                    self.pickle_tasks()
-                    found = True
-                    break
-            if found == False:
-                task_ids_not_found.append(task_id)
-        if task_ids_not_found:
-            print(f"task ID(s) not found: {', '.join(task_ids_not_found)}")
+        for task in self.tasks:
+            if task.unique_id == task_id:
+                self.tasks.remove(task)
+                self.pickle_tasks()
+                return True
         else:
-            return found
+            return False
         
     
     def list_report(self):
@@ -256,12 +241,12 @@ def main():
     parser = argparse.ArgumentParser(description= "update the task list.")
     parser.add_argument('--add', type= str, required= False, help= "add one task to your list by passing in an alphanumeric name.")
     parser.add_argument('--list', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
-    parser.add_argument('--done', type= str, required= False, nargs="+", help= "the unique ID of the task you want to mark 'complete.'")
-    parser.add_argument('--delete', type= str, required= False, nargs="+", help= "the unique ID of the task you want to remove from the list.")
+    parser.add_argument('--report', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
+    parser.add_argument('--done', type= str, required= False, help= "the unique ID of the task you want to mark 'complete.'")
+    parser.add_argument('--delete', type= str, required= False, help= "the unique ID of the task you want to remove from the list.")
+    parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
     parser.add_argument('--due', type=str, required=False, help="the due date in MM/DD/YYYY format.")
     parser.add_argument('--priority', type= int, required=False, default=1, help="the priority of a task; the default is 1")
-    parser.add_argument('--query', type=str, required=False, nargs="+", help="input a series of string-search to find key terms in task names")
-    parser.add_argument('--report', action='store_true', required=False, help="list all tasks that have not been completed, by due date then priority.")
 
 
 
@@ -282,13 +267,47 @@ def main():
     elif args.list:
         sorted_incomplete_tasks = task_list.display_list()
         print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
-        print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 5}")
+        print(f"{'-' * 8}   {'-' * 3}\t{'-' * 10} {'-' * 8}    {'-' * 25}")
         
         for task in sorted_incomplete_tasks:
             age_str = f"{task.age}d" if task.age is not None else "0d"
             due_date_str = task.due_date if task.due_date else "-"
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
         return
+    
+    elif args.report:
+        all_tasks_debugging = task_list.list_report()
+        print(f"{'ID':<10} {'Age':<5} {'Due Date':<8}  {'Priority':<10}  {'Task':<1}")
+        print(f"{'ID':<12} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<40} {'Created':<20} {'Completed':<20}")
+        print(f"{'-' * 9} {'-' * 3} {'-' * 10} {'-' * 8} {'-' * 35} {'-' * 30} {'-' * 30}")
+    
+        for task in all_tasks_debugging:
+            # Format age, due date, and completed date with fallback values
+            age_str = f"{task.age}d" if task.age is not None else "0d"
+            due_date_str = task.due_date if task.due_date else "-"
+            completed_str = task.raw_completed if hasattr(task, 'raw_completed') else "-"
+        
+            # Print task details with aligned columns
+            print(f"{task.unique_id:<12} {age_str:<5} {due_date_str:<12} {task.priority:<10} {task.name:<40} {task.raw_created:<20} {completed_str:<20}")
+        return
+    
+    elif args.done:
+        successfully_updated = task_list.list_done(args.done)
+        if successfully_updated == True:
+            print(f"Completed task ID {args.done}")
+            return
+        else:
+            print(f"Could not identity task ID {args.done}")
+            return
+    
+    elif args.delete:
+        successfully_deleted = task_list.list_delete(args.delete)
+        if successfully_deleted == True:
+            print(f"Deleted task ID {args.delete}")  
+            return
+        else:
+            print(f"Could not identify task ID {args.delete}")
+            return
     
     elif args.query: #I made a runtime tradeoff here with the justification of better search performance for worse runtime O(N^3) vs O(N)
         final_tasks = task_list.list_query(args.query)
@@ -303,32 +322,6 @@ def main():
             print(f"{task.unique_id:<10} {age_str:<5} {due_date_str:<12} {task.priority:<8} {task.name:<1}")
         return
 
-    elif args.done:
-        successfully_updated = task_list.list_done(args.done)
-        if successfully_updated == True:
-            print(f"Completed task(s) {args.done}")
-        return
-    
-    elif args.delete:
-        successfully_deleted = task_list.list_delete(args.delete)
-        if successfully_deleted == True:
-            print(f"Deleted task(s) {args.delete}")  
-        return
-    
-    elif args.report:
-        all_tasks_debugging = task_list.list_report()
-        print(f"{'ID':<12} {'Age':<5} {'Due Date':<12} {'Priority':<10} {'Task':<40} {'Created':<20} {'Completed':<20}")
-        print(f"{'-' * 9} {'-' * 3} {'-' * 10} {'-' * 8} {'-' * 35} {'-' * 30} {'-' * 30}")
-    
-        for task in all_tasks_debugging:
-            # Format age, due date, and completed date with fallback values
-            age_str = f"{task.age}d" if task.age is not None else "0d"
-            due_date_str = task.due_date if task.due_date else "-"
-            completed_str = task.raw_completed if hasattr(task, 'raw_completed') else "-"
-        
-            # Print task details with aligned columns
-            print(f"{task.unique_id:<12} {age_str:<5} {due_date_str:<12} {task.priority:<10} {task.name:<40} {task.raw_created:<20} {completed_str:<20}")
-        return
 
     else:
         print("You did not call a valid operation, try -h for a list of valid operations")
